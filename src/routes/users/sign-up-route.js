@@ -1,37 +1,38 @@
-const qs = require('querystring');
+const fs = require('fs');
+const path = require('path');
+const shortid = require('shortid');
 
-const saveUser = user => {
-  // получить файл с юзером
-  // найти путь папки users
-  // сохранить туда файл
+const saveUser = (user, response) => {
+  const fileName = `${user.id}--${user.username.toLowerCase()}.json`;
+
+  const usersPath = path.resolve(__dirname, '../../', 'db/users', fileName);
+  fs.writeFile(usersPath, JSON.stringify(user), function(err) {
+    if (err) throw err;
+
+    fs.readFile(usersPath, (err, data) => {
+      if (err) throw err;
+      response.writeHead(200, { 'Content-Type': 'text/json' });
+      response.end(data);
+    });
+  });
 };
 
 const signUpRoute = (request, response) => {
-  // Взять данные что пришли
-
   if (request.method === 'POST') {
     let body = '';
-
-    request.on('data', function (data) {
+    request.on('data', function(data) {
       body = body + data;
-
-      console.log('Incoming data!!!!');
     });
-
-    request.on('end', function () {
-      const post = qs.parse(body);
-      console.log(post);
+    request.on('end', function() {
+      let userObj = JSON.parse(body);
+      const userId = shortid.generate();
+      userObj = { id: userId, ...userObj };
+      saveUser(userObj, response);
     });
+  } else {
+    response.writeHead(401, { 'Content-Type': 'text/plain' });
+    response.end('Forbidden');
   }
-
-  // Взять username с данных, сохранить в переменную
-
-  // Сохраняем данные в <username>.json
-
-  // Сохранить <username>.json в папку users
-
-  // Отправляем файл в ответе с данными юзера
-  // использовать response
 };
 
 module.exports = signUpRoute;
